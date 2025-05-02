@@ -499,7 +499,12 @@ static int sf_composite(void) {
                 // should this sf intersected with any prior redrawn region, 
                 // mark this sf as dirty (need redrawn)
                  
-                /* STUDENT_TODO: your code here */
+                for (int i=0;i<n_redrawn;i++) {
+                    if (do_regions_intersect(&sf->r, &redrawn_regions[i])) {
+                        sf->dirty = 1; 
+                        break;
+                    }
+                }
             }
             if (!sf->dirty)
                 continue;
@@ -516,7 +521,7 @@ static int sf_composite(void) {
                 if (sf->transparency!=100) { // sf transparent
                     // read back the fb row, mix, and write back
                     //what if no invalidation?
-                    __asm_invalidate_dcache_range(0, 0); /* STUDENT_TODO: replace this */
+                    __asm_invalidate_dcache_range(p0, p0+ww*PIXELSIZE);
                     
                     // transparent effect 
                     int t1=sf->transparency, t0=100-t1;
@@ -525,7 +530,18 @@ static int sf_composite(void) {
                         unsigned int *px1 = (unsigned int*)p1; 
                         // UVA-OS students: optional features
                          
-                        /* STUDENT_TODO: your code here */
+                        unsigned int bg = px0[k];
+                        unsigned int fg = px1[k];                        
+                        unsigned char bg_r = (bg >> 16) & 0xFF;
+                        unsigned char bg_g = (bg >> 8) & 0xFF;
+                        unsigned char bg_b = bg & 0xFF;   
+                        unsigned char fg_r = (fg >> 16) & 0xFF;
+                        unsigned char fg_g = (fg >> 8) & 0xFF;
+                        unsigned char fg_b = fg & 0xFF;
+                        unsigned char r = (fg_r * t1 + bg_r * t0) / 100;
+                        unsigned char g = (fg_g * t1 + bg_g * t0) / 100;
+                        unsigned char b = (fg_b * t1 + bg_b * t0) / 100;
+                        px0[k] = (r << 16) | (g << 8) | b;
                     }
                 } else if ((unsigned long)p0%8==0 && (unsigned long)p1%8==0 && (sf->r.w*PIXELSIZE)%8==0)
                     memcpy_aligned(p0, p1, ww*PIXELSIZE); // fast path: opaque sf, aligned
@@ -534,7 +550,7 @@ static int sf_composite(void) {
                 p0 += the_fb.pitch; p1 += sf->r.w*PIXELSIZE;
             }
             redrawn_regions[n_redrawn++] = sf->r; cnt++; 
-            /* STUDENT_TODO: your code here */
+            sf->dirty = 0;
         }
     }
 
@@ -571,7 +587,8 @@ static void sf_task(int arg) {
     while (1)  { 
         // sleep on sflist; once notified to wake up, call sf_composite() 
          
-        /* STUDENT_TODO: your code here */
+        sleep(&sflist, &sflock);
+        sf_composite();
     }
     release(&sflock); // never reach here?
 }
@@ -630,7 +647,20 @@ int devfb0_write(int user_src, uint64 src, int off, int n, void *content) {
     
     // copy user writes to sf->buf, note the offset
      
-    /* STUDENT_TODO: your code here */
+    len = sf->r.w * sf->r.h * PIXELSIZE;
+    if (off >= len) {
+        ret = 0;
+        goto out;
+    }
+    if (off + n > len) {
+        n = len - off;
+    }
+    if (either_copyin(sf->buf + off, user_src, src, n) == -1) {
+        ret = -1;
+        goto out;
+    }
+    ret = n;
+    sf->dirty = 1;
     
     /* Current design: wakes up flinger for evrey write(). This could be
     expensive, e.g. if a task write to /dev/fb0 in small batches. However, tasks
@@ -641,7 +671,7 @@ int devfb0_write(int user_src, uint64 src, int off, int n, void *content) {
     which the task calls at the end of writing the entire surface */
 
     // notify flinger
-    /* STUDENT_TODO: your code here */
+    wakeup(&sflist);
 out:     
     release(&sflock); 
     return ret; 
@@ -774,6 +804,10 @@ int start_sf(void) {
     devsw[FRAMEBUFFER0].write = devfb0_write;
 
      
-    /* STUDENT_TODO: your code here */
+    int res = copy_process(PF_KTHREAD, (unsigned long)&sf_task, 0/*arg*/, "[sf]");
+    if (res < 0) {
+        E("Failed to create surface flinger task");
+        return -1;
+    }
     return 0; 
 }

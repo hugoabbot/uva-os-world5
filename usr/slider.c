@@ -272,41 +272,45 @@ int main(int argc, char **argv) {
   unsigned scancode; 
   while (1) {
     evtype = INVALID; scancode = 0;
-    n = read_kb_event(events, &evtype, &scancode); assert(n==0); //blocking
-    if (!(scancode && evtype)) {
-      printf("warning: ev %d scancode 0x%x\n", evtype, scancode); 
-      assert(0); 
-    }
+    // n = read_kb_event(events, &evtype, &scancode); assert(n==0); //blocking
+    // if (!(scancode && evtype)) {
+    //   printf("warning: ev %d scancode 0x%x\n", evtype, scancode); 
+    //   assert(0); 
+    // }
     
-    if (evtype == KEYDOWN) {
-      switch(scancode) {
-        case KEY_0: rep = rep * 10 + 0; break;
-        case KEY_1: rep = rep * 10 + 1; break;
-        case KEY_2: rep = rep * 10 + 2; break;
-        case KEY_3: rep = rep * 10 + 3; break;
-        case KEY_4: rep = rep * 10 + 4; break;
-        case KEY_5: rep = rep * 10 + 5; break;
-        case KEY_6: rep = rep * 10 + 6; break;
-        case KEY_7: rep = rep * 10 + 7; break;
-        case KEY_8: rep = rep * 10 + 8; break;
-        case KEY_9: rep = rep * 10 + 9; break;
-        case KEY_J:
-        case KEY_RIGHT:
-        case KEY_PAGEDOWN: next(rep); rep = 0; g = 0; break;
-        case KEY_K:
-        case KEY_LEFT:
-        case KEY_PAGEUP: prev(rep); rep = 0; g = 0; break;
-        case KEY_G:
-          g ++;
-          if (g > 1) {
-            prev(100000);
-            rep = 0; g = 0;
-          }
-          break;
-        case KEY_Q:
-          goto cleanup;
-          break; 
-      }
+    // if (evtype == KEYDOWN) {
+    //   switch(scancode) {
+    //     case KEY_0: rep = rep * 10 + 0; break;
+    //     case KEY_1: rep = rep * 10 + 1; break;
+    //     case KEY_2: rep = rep * 10 + 2; break;
+    //     case KEY_3: rep = rep * 10 + 3; break;
+    //     case KEY_4: rep = rep * 10 + 4; break;
+    //     case KEY_5: rep = rep * 10 + 5; break;
+    //     case KEY_6: rep = rep * 10 + 6; break;
+    //     case KEY_7: rep = rep * 10 + 7; break;
+    //     case KEY_8: rep = rep * 10 + 8; break;
+    //     case KEY_9: rep = rep * 10 + 9; break;
+    //     case KEY_J:
+    //     case KEY_RIGHT:
+    //     case KEY_PAGEDOWN: next(rep); rep = 0; g = 0; break;
+    //     case KEY_K:
+    //     case KEY_LEFT:
+    //     case KEY_PAGEUP: prev(rep); rep = 0; g = 0; break;
+    //     case KEY_G:
+    //       g ++;
+    //       if (g > 1) {
+    //         prev(100000);
+    //         rep = 0; g = 0;
+    //       }
+    //       break;
+    //     case KEY_Q:
+    //       goto cleanup;
+    //       break; 
+    //   }
+    // }
+    sleep(3000);
+    if (0) {
+      goto cleanup;
     }
   }
 
