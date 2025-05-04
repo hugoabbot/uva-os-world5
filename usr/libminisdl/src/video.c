@@ -122,7 +122,7 @@ int SDL_SetRenderDrawColor(SDL_Renderer *renderer,
 static inline void setpixel(char *buf, int x, int y, int pit, PIXEL p) {
     assert(x >= 0 && y >= 0);
      
-    /* STUDENT_TODO: your code here */
+    *(PIXEL *)(buf + y * pit + x * PIXELSIZE) = p;
 }
 
 static inline PIXEL getpixel(char *buf, int x, int y, int pit) {
@@ -142,7 +142,7 @@ int SDL_RenderClear(SDL_Renderer *rdr) {
     PIXEL p = rgba_to_pixel(rdr->c.r, rdr->c.g, rdr->c.b, rdr->c.a);    
     for (int y = 0; y < SCREEN_HEIGHT; y++)
         for (int x = 0; x < SCREEN_WIDTH; x++)
-            setpixel(0, 0, 0, 0, 0); /* STUDENT_TODO: replace this */
+            setpixel(tgt, x, y, pitch, p);
     return 0;
 }
 
@@ -282,7 +282,7 @@ int SDL_RenderDrawLine(SDL_Renderer * rdr,
     int yy1=y1, yy2=y2; 
     if (y1>y2) {yy1=y2;yy2=y1;}
     for (int y=yy1; y<yy2; y++) {            
-        setpixel(0,0,0,0,0); /* STUDENT_TODO: replace this */
+        setpixel(tgt, x1, y, pitch, p);
     }
 
     return 0; 

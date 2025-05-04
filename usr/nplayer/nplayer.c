@@ -38,7 +38,7 @@
 #define MAX_VOLUME 128
 
 // do visualization on screen?  quest: make off initially
-#define HAS_VISUAL  1
+#define HAS_VISUAL  0
 
 stb_vorbis *v = NULL;
 stb_vorbis_info info = {};
@@ -76,7 +76,7 @@ static void visualeffect(int16_t *stream, int samples) {
   int center_y = H / 2;
   // for accessing "stream"
   // what if no lock? what would happen? (drawLine may acccess invalid buf addr
-  /* STUDENT_TODO: your code here */
+  spinlock_lock(&sslock); 
   for (i = 0; i < samples; i ++) {
     float multipler = cos(3.14*2*i/samples); 
     int x = i * W / samples;
@@ -86,7 +86,7 @@ static void visualeffect(int16_t *stream, int samples) {
     else drawVerticalLine(x, center_y, y, color);
     color ++; color &= 0xffffff;
   }
-  /* STUDENT_TODO: your code here */
+  spinlock_unlock(&sslock);
   SDL_RenderPresent(renderer);
 #endif  
 }
@@ -112,7 +112,7 @@ void FillAudio(void *userdata, uint8_t *stream, int len) {
   int nbyte = 0;
   // call vorbis to decode ogg & fill "stream"...
   int samples_per_channel = stb_vorbis_get_samples_short_interleaved(v, info.channels, 
-    0, 0); /* STUDENT_TODO: replace this */
+    (int16_t*) stream, len);
   
   if (samples_per_channel != 0 || len < sizeof(int16_t)) {
     int samples = samples_per_channel * info.channels;
@@ -125,8 +125,10 @@ void FillAudio(void *userdata, uint8_t *stream, int len) {
   if (nbyte < len) memset(stream + nbyte, 0, len - nbyte);
 
   // make a copy of the current "stream" for visualization 
-   
-  /* STUDENT_TODO: your code here */
+    
+  spinlock_lock(&sslock);
+  memcpy(stream_save, stream, nbyte);
+  spinlock_unlock(&sslock);
 }
 
 /* Usage
@@ -169,7 +171,14 @@ int main(int argc, char *argv[]) {
   // quest: music player. load ogg file
   void * buf = 0; size_t size = 0;
    
-  /* STUDENT_TODO: your code here */
+  fseek(fp, 0, SEEK_END);
+  size = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+  buf = malloc(size);
+  assert(buf);
+  ret = fread(buf, 1, size, fp);
+  assert(ret == size);
+  fclose(fp);
 
   /* will call stb_vorbis to decode ogg in pieces */
   int error;
@@ -207,7 +216,7 @@ int main(int argc, char *argv[]) {
 
   while (!is_end) {
     SDL_Event ev;
-    while (0) { /* STUDENT_TODO: replace this */
+    while (SDL_PollEvent(&ev, evflags)) {
       if (ev.type == SDL_KEYDOWN) {   
         switch (ev.key.keysym.sym) {
           case SDLK_MINUS:  if (volume >= 8) volume -= 8; break;
@@ -218,7 +227,16 @@ int main(int argc, char *argv[]) {
       }
     }
     SDL_Delay(1000 / FPS);
-    visualeffect(0,0); /* STUDENT_TODO: replace this */
+    short *stream_copy = NULL;
+    spinlock_lock(&sslock);
+    if (stream_save) {
+      stream_copy = stream_save;
+    }
+    spinlock_unlock(&sslock);
+    
+    if (stream_copy) {
+      visualeffect(stream_copy, SAMPLES * info.channels);
+    }
   }
 
 cleanup:

@@ -71,10 +71,8 @@ long sys_clone(unsigned long flags, unsigned long userstack,
                      unsigned long parent_tid, unsigned long usertls,
                      unsigned long child_tid) {
 	if (flags != CLONE_VM) return -1; 
-	 
-	/* STUDENT_TODO: your code here */
 
-	return copy_process(PF_UTHREAD, 0, 0, 0); /* STUDENT_TODO: replace this */
+	return copy_process(PF_UTHREAD, 0, userstack, 0); 
 }
 
 int sys_exit(int c){
@@ -232,7 +230,7 @@ void * const sys_call_table[] = {
 	[SYS_mkdir]   sys_mkdir,
 	[SYS_close]   sys_close,	
 	[SYS_lseek]   sys_lseek,	
-	[SYS_clone]   0, /* STUDENT_TODO: replace this */
+	[SYS_clone]   sys_clone,
 	[SYS_semcreate]   sys_semcreate,
 	[SYS_semfree]   sys_semfree,
 	[SYS_semp]   sys_semp,

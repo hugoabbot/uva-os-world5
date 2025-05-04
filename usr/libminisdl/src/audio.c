@@ -64,12 +64,20 @@ static int thread_func(void *param) {
     if (cls0) {ret = 0; goto done;}
     
     // invoke the provided callback to refill the audio buffer
-    fill(0,0,0); /* STUDENT_TODO: replace this */
+    fill(NULL, buf, BUFSIZE);
     total = BUFSIZE; p = buf;
     while (total > 0) {
       // write the data from the audio buffer ("buf") to /dev/sb
        
-      /* STUDENT_TODO: your code here */
+      len = write(sb, p, total);
+      if (len < 0) {
+        perror("write");
+        ret = -1;
+        goto done;
+      }
+      p += len;
+      total -= len;
+
       if (once) {
         // printf("start device\n"); 
         config_sbctl(SB_CMD_START, 0/*drv id*/,-1,-1);
@@ -103,9 +111,18 @@ int SDL_OpenAudio(SDL_AudioSpec *desired, SDL_AudioSpec *obtained) {
 
   // call clone() to create a new thread out of thread_func()
    
-  /* STUDENT_TODO: your code here */
+  static uint8_t audio_stack[8192];
+  ps = clone(thread_func, audio_stack + sizeof(audio_stack), CLONE_VM, desired->callback);
+  if (ps < 0) {
+    perror("clone failed");
+    return -1;
+  }
 
-  return 0; /* STUDENT_TODO: replace this */
+  if (obtained) {
+    *obtained = *desired;
+  }
+
+  return 0;
 }
 
 void SDL_CloseAudio() {
