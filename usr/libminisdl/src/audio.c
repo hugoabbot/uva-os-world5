@@ -64,14 +64,13 @@ static int thread_func(void *param) {
     if (cls0) {ret = 0; goto done;}
     
     // invoke the provided callback to refill the audio buffer
-    fill(NULL, buf, BUFSIZE);
+    fill(0, buf, BUFSIZE);
     total = BUFSIZE; p = buf;
     while (total > 0) {
       // write the data from the audio buffer ("buf") to /dev/sb
        
       len = write(sb, p, total);
       if (len < 0) {
-        perror("write");
         ret = -1;
         goto done;
       }

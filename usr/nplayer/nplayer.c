@@ -38,7 +38,7 @@
 #define MAX_VOLUME 128
 
 // do visualization on screen?  quest: make off initially
-#define HAS_VISUAL  0
+#define HAS_VISUAL  1
 
 stb_vorbis *v = NULL;
 stb_vorbis_info info = {};
@@ -112,7 +112,7 @@ void FillAudio(void *userdata, uint8_t *stream, int len) {
   int nbyte = 0;
   // call vorbis to decode ogg & fill "stream"...
   int samples_per_channel = stb_vorbis_get_samples_short_interleaved(v, info.channels, 
-    (int16_t*) stream, len);
+    (int16_t*) stream, len / sizeof(int16_t));
   
   if (samples_per_channel != 0 || len < sizeof(int16_t)) {
     int samples = samples_per_channel * info.channels;
