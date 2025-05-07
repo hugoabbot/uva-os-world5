@@ -762,7 +762,7 @@ int move_to_user_mode(unsigned long start, unsigned long size, unsigned long pc)
     // be run from main().
     fsinit(ROOTDEV);
 #ifdef CONFIG_FAT        
-	/* STUDENT_TODO: your code here */
+	fsinit(SECONDDEV);
 #endif    
 	
 	return 0;
