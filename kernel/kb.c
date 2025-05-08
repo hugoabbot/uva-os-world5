@@ -47,8 +47,7 @@ int kb_read(int user_dst, uint64 dst, int off, int n, char blocking, void *conte
         // if nonblocking, and nothing to read from the driver, return immediately
          
         if (!blocking && the_kb.r == the_kb.w) {
-            release(&the_kb.lock);
-            return -1;
+            break;
         }
 
         // wait until interrupt handler has put some

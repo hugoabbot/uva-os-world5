@@ -106,6 +106,7 @@ int read_kb_event(int events, int *evtype, unsigned int *scancode) {
      
     n = read(events, buf, LINESIZE);
     if (n <= 0) {
+        printf("boo");
         return -1;
     }
 
@@ -116,8 +117,6 @@ int read_kb_event(int events, int *evtype, unsigned int *scancode) {
     } else if (strncmp(s, "ku ", 3) == 0) {
         *evtype = KEYUP;
         s += 3;
-    } else {
-        return -1;
     }
 
     *scancode = strtol(s, NULL, 16);

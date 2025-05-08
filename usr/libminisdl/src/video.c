@@ -26,7 +26,7 @@ SDL_Window *SDL_CreateWindow(const char *title,
     int n, fb;
     char isfb = (flags & SDL_WINDOW_HWSURFACE)?1:0; // direct or indirect?
 
-    if ((fb = open("/dev/fb/", O_RDWR)) <= 0) /* STUDENT_TODO: replace this */
+    if ((fb = open(isfb?"/dev/fb/":"/dev/fb0/", O_RDWR)) <= 0)
         return 0;
 
     if (isfb) {
@@ -38,7 +38,8 @@ SDL_Window *SDL_CreateWindow(const char *title,
         }
     } else {
          
-        /* STUDENT_TODO: your code here */
+        if (config_fbctl0(FB0_CMD_INIT, x, y, w, h, ZORDER_TOP, 100) != 0)
+            return 0;
     }
 
     SDL_Window *win = malloc(sizeof(SDL_Window)); assert(win);
@@ -50,6 +51,8 @@ SDL_Window *SDL_CreateWindow(const char *title,
             win->dispinfo[WIDTH], win->dispinfo[HEIGHT], win->dispinfo[VWIDTH],
             win->dispinfo[VHEIGHT], win->dispinfo[PITCH], win->dispinfo[DEPTH]);
     } else {
+        printf("/proc/dispinfo: width %d height %d vwidth %d vheight %d pitch %d depth %d\n",
+            w, h, w, h, w * PIXELSIZE, 32);
         win->dispinfo[WIDTH]=w; win->dispinfo[HEIGHT]=h; 
         // win->dispinfo[VWIDTH]=x; win->dispinfo[VHEIGHT]=y; // dirty: steal these fields for passing x/y
         win->dispinfo[PITCH]=w*PIXELSIZE; // no padding
@@ -209,7 +212,7 @@ int SDL_UpdateTexture(SDL_Texture *texture,
         for (int y = 0; y < r->h; y++) {
             //copy one row at a time, from "pixels" to "texture"    
              
-            /* STUDENT_TODO: your code here */
+            memcpy(dest, src, r->w * PIXELSIZE);
         }
     } 
 
@@ -231,7 +234,7 @@ int SDL_RenderCopy(SDL_Renderer *rdr,
         if (texture->h == rdr->h &&
             texture->w == rdr->w && rdr->w * sizeof(PIXEL) == rdr->pitch) {
             // fast path: texture & rendering target same dimensions quest:complete
-            memcpy(rdr->tgt[0], (void*)0xdeadbeef, 0); /* STUDENT_TODO: replace this */
+            memcpy(rdr->tgt[rdr->cur_id], texture->buf, sz);
         } else
         // TBD texture needs to be stretched to match rendering tgt
         // or update part of the tgt (not full), or use part of the texture

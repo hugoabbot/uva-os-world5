@@ -24,7 +24,7 @@ int SDL_PollEvent(SDL_Event *ev, int flags) {
     eventfd = open((flags & SDL_EV_SW) ? "/dev/events0":"/dev/events",
         O_RDONLY | O_NONBLOCK);
     assert(eventfd>0); 
-    blocking = 0; 
+    blocking = 0;
   }
 
   int evtype; unsigned scancode; 
@@ -55,7 +55,7 @@ int SDL_WaitEvent(SDL_Event *ev, int flags) {
     close(eventfd); eventfd = 0; 
   }
   if (!eventfd) {
-    eventfd = open("/dev/events", /* STUDENT_TODO: replace this */
+    eventfd = open((flags & SDL_EV_SW) ? "/dev/events0":"/dev/events",
         O_RDONLY); 
     assert(eventfd>0); 
     blocking = 1; 

@@ -161,7 +161,8 @@ int fileread(struct file *f, uint64 addr, int n) {
     } else if (f->type == FD_DEVICE) { // device read  
         if (f->major < 0 || f->major >= NDEV || !devsw[f->major].read)
             return -1;
-        r = devsw[f->major].read(1, addr, f->off, n, !f->nonblocking, f->content); 
+        // pass the nonblocking flag to the device driver
+        r = devsw[f->major].read(1, addr, f->off, n, f->nonblocking, f->content); 
     } else if (f->type == FD_INODE) { // normal file
         ilock(f->ip);
         if ((r = readi(f->ip, 1, addr, f->off, n)) > 0) // fs read

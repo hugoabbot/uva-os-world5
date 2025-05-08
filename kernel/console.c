@@ -84,7 +84,7 @@ consoleread(int user_dst, uint64 dst, int off, int n, char blocking, void *conte
   int c;
   char cbuf;
 
-  BUG_ON(!blocking); // TBD nonblocking read
+  // BUG_ON(!blocking); // TBD nonblocking read
 
   target = n;
   acquire(&cons.lock);

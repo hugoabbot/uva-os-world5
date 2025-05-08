@@ -306,7 +306,10 @@ static int sf_cycle_focus(void) {
     bot = slist_first_entry(&sflist, struct sf_struct, list); 
     top = slist_tail_entry(&sflist, struct sf_struct, list);
      
-    /* STUDENT_TODO: your code here */
+    // move the bottom sf to the top
+    slist_remove(&sflist, &bot->list);
+    slist_append(&sflist, &bot->list);
+    printf("move pid %d to top\n", bot->pid);
     wakeup(&sflist); 
     ret=0; 
 out: 
@@ -709,27 +712,38 @@ static void kb_task(int arg) {
             release(&the_kb.lock);I("%s quits", __func__);sys_exit(0); // "return" will trigger exception
         }
         
-        ev = the_kb.buf[0]; /* STUDENT_TODO: replace this */
+        ev = the_kb.buf[the_kb.r]; // read the event
+        the_kb.r = (the_kb.r + 1) % INPUT_BUF_SIZE; // update the read pointer
         release(&the_kb.lock);
 
         // 'ctrl-tab' to switch focus among surfaces by calling sf_cycle_focus()
         // (can't do alt-tab, b/c qemu cannot get alt-tab. seems intercepted by Windows)
         if ((ev.mod & KEY_MOD_LCTRL) && (ev.type==KEYUP)) {
              
-            /* STUDENT_TODO: your code here */
+            if (ev.scancode == KEY_TAB) {
+                printf("ctrl-tabup\n");
+                sf_cycle_focus(); // STUDENT_TODO: replace this
+                continue;
+            }
+        } else if ((ev.mod & KEY_MOD_LCTRL) && (ev.type==KEYDOWN)) {
+            if (ev.scancode == KEY_TAB) {
+                printf("ctrl-tab\n");
+                continue; // ignore the keydown event
+            }
         } // TODO: handle more, e.g. Ctrl+Fn
         
         // dispatch the kb event to the top surface
         acquire(&sflock); 
         if (slist_len(&sflist)>0) {
             top = slist_tail_entry(&sflist, struct sf_struct, list); 
-            V("ev: %s mod %04x scan %04x dispatch to: pid %d", 
-                ev.type?"KEYUP":"KEYDOWN", ev.mod, ev.scancode, top->pid); 
+            // printf("ev: %s mod %04x scan %04x dispatch to: pid %d", 
+            //     ev.type?"KEYUP":"KEYDOWN", ev.mod, ev.scancode, top->pid); 
             // NB we rely on sflock and do NOT use the surface.kb::lock 
             // (simple, also avoid the race between event dispatch vs. 
             // changing surface z order)
-            top->kb.buf[0] = ev; /* STUDENT_TODO: replace this */
-            wakeup(0); /* STUDENT_TODO: replace this */
+            top->kb.buf[top->kb.w] = ev;
+            top->kb.w = (top->kb.w + 1) % INPUT_BUF_SIZE;
+            wakeup(&top->kb.r); // notify the surface
         } else {
             I("ev: %s mod %04x scan %04x (no surface to dispatch)", 
                 ev.type?"KEYUP":"KEYDOWN", ev.mod, ev.scancode); 
@@ -771,12 +785,22 @@ int kb0_read(int user_dst, uint64 dst, int off, int n, char blocking, void *cont
         // input into cons.buffer.
         while (kb->r == kb->w) {
              
-            /* STUDENT_TODO: your code here */
+            if (killed(myproc())) {
+                release(&sflock);
+                return -1;
+            }
+            if (!blocking) {
+                release(&sflock);
+                return target - n; // return the number of bytes read
+            }
+            sleep(&the_kb.r, &sflock); // wait for the reader
         }
 
         if (n < TXTSIZE) break; // no enough space in userbuf
 
-        ev = kb->buf[0]; /* STUDENT_TODO: replace this */
+        ev = kb->buf[kb->r]; // read the event
+        kb->r = (kb->r + 1) % INPUT_BUF_SIZE; // update the read pointer
+        printf("kb->r %d kb->w %d\n", kb->r, kb->w);
         int len = snprintf(ev_txt, TXTSIZE, "%s 0x%02x\n", 
             ev.type == KEYDOWN ? "kd":"ku", ev.scancode); 
         BUG_ON(len < 0 || len >= TXTSIZE); // ev_txt too small
